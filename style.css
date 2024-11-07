@@ -1,0 +1,50 @@
+body {
+	font-family: Arial, sans-serif;
+	margin: 20px;
+}
+
+h1 {
+	text-align: center;
+}
+
+#variables-section,
+#scripts-section {
+	margin-top: 20px;
+}
+
+.category-title {
+	margin-top: 30px;
+}
+
+.endpoint-info {
+	font-style: italic;
+	margin-bottom: 10px;
+}
+
+.item {
+	border: 1px solid #ccc;
+	padding: 10px;
+	margin-bottom: 10px;
+}
+
+.item h3 {
+	margin: 0 0 5px 0;
+}
+
+.item p {
+	margin: 5px 0;
+}
+
+.item.error {
+	background-color: #ffcccc;
+}
+
+pre {
+	background-color: #f9f9f9;
+	padding: 10px;
+	overflow-x: auto;
+}
+
+button {
+	margin-top: 10px;
+}
