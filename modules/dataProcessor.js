@@ -22,6 +22,15 @@ function processVariables(variables) {
 		const searchNameParam = parameter.find(p => p.key === 'name');
 		const search_name = searchNameParam ? searchNameParam.value : '';
 
+		const formatValue = variable.formatValue || {};
+		const caseConversionType = formatValue.caseConversionType || '';
+		const convertNullToValue = formatValue.convertNullToValue ? formatValue.convertNullToValue.value : '';
+		const convertUndefinedToValue = formatValue.convertUndefinedToValue
+			? formatValue.convertUndefinedToValue.value
+			: '';
+		const convertTrueToValue = formatValue.convertTrueToValue ? formatValue.convertTrueToValue.value : '';
+		const convertFalseToValue = formatValue.convertFalseToValue ? formatValue.convertFalseToValue.value : '';
+
 		return {
 			id: 0,
 			name: name,
@@ -32,6 +41,11 @@ function processVariables(variables) {
 			attr_name: '',
 			attr_type: 0,
 			save_attr_value: 0,
+			caseConversionType: caseConversionType,
+			convertNullToValue: convertNullToValue,
+			convertUndefinedToValue: convertUndefinedToValue,
+			convertTrueToValue: convertTrueToValue,
+			convertFalseToValue: convertFalseToValue,
 		};
 	});
 }
