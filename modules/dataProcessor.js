@@ -1,6 +1,8 @@
 export function processData(jsonData) {
 	const { tags, variables, triggers } = parseGTMContainer(jsonData);
 
+	if (!tags || tags.length === 0) return { attributes: [], scripts: [], domainActions: [] };
+
 	const attributes = processVariables(variables);
 	const { scripts, domainActions } = processTags(tags, triggers);
 
@@ -8,6 +10,7 @@ export function processData(jsonData) {
 }
 
 function parseGTMContainer(jsonData) {
+	if (!jsonData || !jsonData.containerVersion) return {};
 	const containerVersion = jsonData.containerVersion;
 	const tags = containerVersion.tag || [];
 	const variables = containerVersion.variable || [];
@@ -91,7 +94,6 @@ function processTags(tags, triggers) {
 
 	return { scripts, domainActions };
 }
-
 
 function processTriggers(triggers, tagName, script_id) {
 	const triggerInfoList = [];
@@ -266,7 +268,6 @@ function processTriggers(triggers, tagName, script_id) {
 
 	return { triggerInfo: triggerInfoList, domainActions };
 }
-
 
 function translateOperator(operator) {
 	switch (operator) {

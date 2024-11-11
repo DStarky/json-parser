@@ -1,5 +1,8 @@
 export function displayVariables(attributes) {
-	if (!attributes || attributes.length === 0) return;
+	if (!attributes || attributes.length === 0) {
+		createEmptySection('variables-section', 'Атрибуты');
+		return;
+	}
 
 	const variablesSection = createSection('variables-section', 'Атрибуты', 'sitescripts/CommonScript/CreateClientAttr');
 
@@ -51,7 +54,10 @@ export function displayVariables(attributes) {
 }
 
 export function displayScripts(scripts) {
-	if (!scripts || scripts.length === 0) return;
+	if (!scripts || scripts.length === 0) {
+		createEmptySection('scripts-section', 'Скрипты');
+		return;
+	}
 
 	const scriptsSection = createSection('scripts-section', 'Скрипты', 'sitescripts/CommonScript/');
 
@@ -102,7 +108,10 @@ export function displayScripts(scripts) {
 }
 
 export function displayDomainActions(domainActions) {
-	if (!domainActions || domainActions.length === 0) return;
+	if (!domainActions || domainActions.length === 0) {
+		createEmptySection('domainaction-section', 'Domain Actions');
+		return;
+	}
 
 	const domainActionsSection = createSection('domainaction-section', 'Domain Actions', 'sitescripts/DomainAction/');
 
@@ -189,4 +198,13 @@ function createItem(container, contentBuilder, detailsContent) {
 	});
 
 	container.appendChild(itemDiv);
+}
+
+function createEmptySection(sectionId, titleText) {
+	const section = document.getElementById(sectionId);
+	section.innerHTML = '';
+
+	const title = document.createElement('h2');
+	title.textContent = `${titleText}: Данные отсутствуют`;
+	section.appendChild(title);
 }
