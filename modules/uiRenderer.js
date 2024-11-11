@@ -14,6 +14,36 @@ export function displayVariables(attributes) {
 				const searchNameElem = document.createElement('p');
 				searchNameElem.textContent = `Search Name: ${attribute.search_name}`;
 				itemDiv.appendChild(searchNameElem);
+
+				if (attribute.caseConversionType) {
+					const caseConversionElem = document.createElement('p');
+					caseConversionElem.textContent = `Case Conversion Type: ${attribute.caseConversionType}`;
+					itemDiv.appendChild(caseConversionElem);
+				}
+
+				if (attribute.convertNullToValue) {
+					const convertNullElem = document.createElement('p');
+					convertNullElem.textContent = `Convert Null To Value: ${attribute.convertNullToValue}`;
+					itemDiv.appendChild(convertNullElem);
+				}
+
+				if (attribute.convertUndefinedToValue) {
+					const convertUndefinedElem = document.createElement('p');
+					convertUndefinedElem.textContent = `Convert Undefined To Value: ${attribute.convertUndefinedToValue}`;
+					itemDiv.appendChild(convertUndefinedElem);
+				}
+
+				if (attribute.convertTrueToValue) {
+					const convertTrueElem = document.createElement('p');
+					convertTrueElem.textContent = `Convert True To Value: ${attribute.convertTrueToValue}`;
+					itemDiv.appendChild(convertTrueElem);
+				}
+
+				if (attribute.convertFalseToValue) {
+					const convertFalseElem = document.createElement('p');
+					convertFalseElem.textContent = `Convert False To Value: ${attribute.convertFalseToValue}`;
+					itemDiv.appendChild(convertFalseElem);
+				}
 			},
 			attribute,
 		);
@@ -34,7 +64,7 @@ export function displayScripts(scripts) {
 				itemDiv.classList.toggle('error', !canProcess);
 
 				const nameElem = document.createElement('h3');
-				nameElem.textContent = `Имя: ${script.name}`;
+				nameElem.textContent = `Имя: ${script.name} (ID: ${script.script_id})`;
 				itemDiv.appendChild(nameElem);
 
 				triggerInfo.forEach(trigger => {
@@ -54,7 +84,9 @@ export function displayScripts(scripts) {
 								: `Необрабатываемое условие: ${condition.variable} ${condition.operator} ${condition.value}`;
 						} else if (condition.processed) {
 							conditionElem.style.color = 'green';
-							conditionElem.textContent = `Условие обработано: ${condition.variable} ${condition.operator} ${condition.value}`;
+							conditionElem.textContent = condition.message
+								? condition.message
+								: `Условие обработано: ${condition.variable} ${condition.operator} ${condition.value}`;
 						} else {
 							conditionElem.textContent = `Условие: ${condition.variable} ${condition.operator} ${condition.value}`;
 						}
@@ -79,16 +111,28 @@ export function displayDomainActions(domainActions) {
 			domainActionsSection,
 			itemDiv => {
 				const nameElem = document.createElement('h3');
-				nameElem.textContent = `Имя: ${action.name}`;
+				nameElem.textContent = `Имя: ${action.name} ${
+					action.requestBody.script_id ? `(ID: ${action.requestBody.script_id})` : ''
+				}`;
 				itemDiv.appendChild(nameElem);
 
 				const triggerElem = document.createElement('p');
 				triggerElem.textContent = `Триггер: ${action.triggerName} (${action.triggerType})`;
 				itemDiv.appendChild(triggerElem);
 
-				const conditionElem = document.createElement('p');
-				conditionElem.textContent = `Условие обработано: ${action.condition.variable} ${action.condition.operator} ${action.condition.value}`;
-				itemDiv.appendChild(conditionElem);
+				if (action.condition && action.condition.variable) {
+					const conditionElem = document.createElement('p');
+					conditionElem.textContent = `Условие обработано: ${action.condition.variable} ${action.condition.operator} ${action.condition.value}`;
+					itemDiv.appendChild(conditionElem);
+				} else if (action.triggerType === 'CUSTOM_EVENT') {
+					const conditionElem = document.createElement('p');
+					conditionElem.textContent = `Обработан триггер CUSTOM_EVENT`;
+					itemDiv.appendChild(conditionElem);
+				} else {
+					const conditionElem = document.createElement('p');
+					conditionElem.textContent = `Условие: нет доступной информации`;
+					itemDiv.appendChild(conditionElem);
+				}
 			},
 			action.requestBody,
 		);

@@ -53,6 +53,7 @@ function processVariables(variables) {
 function processTags(tags, triggers) {
 	const scripts = [];
 	const domainActions = [];
+	let scriptCounter = 1;
 
 	tags.forEach(tag => {
 		if (tag.type === 'html') {
@@ -62,6 +63,7 @@ function processTags(tags, triggers) {
 			const script_text = templateParam ? templateParam.value : '';
 
 			const script = {
+				script_id: scriptCounter++,
 				name: name,
 				script_text: script_text,
 				status: 0,
@@ -71,7 +73,11 @@ function processTags(tags, triggers) {
 
 			const firingTriggerIds = tag.firingTriggerId || [];
 			const relatedTriggers = triggers.filter(trigger => firingTriggerIds.includes(trigger.triggerId));
-			const { triggerInfo, domainActions: triggerDomainActions } = processTriggers(relatedTriggers, name);
+			const { triggerInfo, domainActions: triggerDomainActions } = processTriggers(
+				relatedTriggers,
+				name,
+				script.script_id,
+			);
 
 			scripts.push({
 				script: script,
@@ -86,7 +92,8 @@ function processTags(tags, triggers) {
 	return { scripts, domainActions };
 }
 
-function processTriggers(triggers, tagName) {
+
+function processTriggers(triggers, tagName, script_id) {
 	const triggerInfoList = [];
 	const domainActions = [];
 
@@ -95,7 +102,42 @@ function processTriggers(triggers, tagName) {
 		let canProcess = true;
 		const conditions = [];
 
-		if (['CLICK', 'LINK_CLICK', 'CUSTOM_EVENT'].includes(triggerType)) {
+		if (triggerType === 'CUSTOM_EVENT') {
+			const domain =
+				'https://' +
+				window.location.hostname.replace('www.', '') +
+				(window.location.port ? ':' + window.location.port : '');
+
+			const requestBody = {
+				actionType: 'customAction',
+				selector: '.ux_customAction',
+				context: 'customAction',
+				domain: domain,
+				sendToRocket: false,
+				script_id: script_id,
+			};
+
+			domainActions.push({
+				name: tagName,
+				triggerName: trigger.name || '',
+				triggerType: triggerType,
+				condition: {},
+				requestBody: requestBody,
+			});
+
+			conditions.push({
+				message: 'Обработан триггер CUSTOM_EVENT',
+				processed: true,
+			});
+
+			triggerInfoList.push({
+				triggerId: trigger.triggerId,
+				name: trigger.name || '',
+				type: triggerType,
+				conditions: conditions,
+				canProcess: true,
+			});
+		} else if (['CLICK', 'LINK_CLICK'].includes(triggerType)) {
 			const filters = trigger.filter || [];
 			filters.forEach(filter => {
 				const filterType = filter.type;
@@ -105,75 +147,88 @@ function processTriggers(triggers, tagName) {
 				const arg0Value = arg0 ? arg0.value : '';
 				const arg1Value = arg1 ? arg1.value : '';
 
-				if (
-					(filterType === 'CSS_SELECTOR' && arg0Value === '{{Click Classes}}') ||
-					(filterType === 'EQUALS' && arg0Value === '{{Click ID}}') ||
-					(filterType === 'CONTAINS' && arg0Value === '{{Click Classes}}') ||
-					(filterType === 'EQUALS' && arg0Value === '{{Click URL}}')
-				) {
-					let selector = arg1Value;
-					let context = '';
-					let actionType = '';
+				let selector = '';
+				let context = '';
+				let actionType = '';
+				let canProcessCondition = true;
 
-					if (filterType === 'CSS_SELECTOR' && arg0Value === '{{Click Classes}}') {
-						actionType = 'click';
-						selector = arg1Value;
-						context = 'gClicks';
-					} else if (filterType === 'EQUALS' && arg0Value === '{{Click ID}}') {
-						actionType = 'click';
-						selector = `#${arg1Value}`;
-						context = 'gClicks';
-					} else if (filterType === 'CONTAINS' && arg0Value === '{{Click Classes}}') {
-						actionType = 'click';
-						selector = `.${arg1Value}`;
-						context = 'gClicks';
-					} else if (filterType === 'EQUALS' && arg0Value === '{{Click URL}}') {
-						actionType = 'click';
-						selector = `[href="${arg1Value}"]`;
-						context = 'gLinkClicks';
-					}
-
-					if (actionType && selector && context) {
-						const domain =
-							'https://' +
-							window.location.hostname.replace('www.', '') +
-							(window.location.port ? ':' + window.location.port : '');
-
-						const requestBody = {
-							actionType: actionType,
-							selector: selector,
-							context: context,
-							domain: domain,
-						};
-
-						conditions.push({
-							variable: arg0Value,
-							operator: translateOperator(filterType),
-							value: selector,
-							processed: true,
-							requestBody: requestBody,
-						});
-
-						domainActions.push({
-							name: tagName,
-							triggerName: trigger.name || '',
-							triggerType: triggerType,
-							condition: {
-								variable: arg0Value,
-								operator: translateOperator(filterType),
-								value: arg1Value,
-							},
-							requestBody: requestBody,
-						});
+				if (arg0Value === '{{Click Classes}}') {
+					actionType = 'click';
+					context = 'gClicks';
+					if (['EQUALS', 'CONTAINS', 'STARTS_WITH', 'ENDS_WITH'].includes(filterType)) {
+						selector = arg1Value
+							.split(' ')
+							.map(className => '.' + className)
+							.join('');
 					} else {
-						canProcess = false;
-						conditions.push({
+						canProcessCondition = false;
+					}
+				} else if (arg0Value === '{{Click ID}}') {
+					actionType = 'click';
+					context = 'gClicks';
+					if (filterType === 'EQUALS') {
+						selector = `#${arg1Value}`;
+					} else if (filterType === 'CONTAINS') {
+						selector = `[id*="${arg1Value}"]`;
+					} else if (filterType === 'STARTS_WITH') {
+						selector = `[id^="${arg1Value}"]`;
+					} else if (filterType === 'ENDS_WITH') {
+						selector = `[id$="${arg1Value}"]`;
+					} else {
+						canProcessCondition = false;
+					}
+				} else if (arg0Value === '{{Click URL}}') {
+					actionType = 'click';
+					context = 'gLinkClicks';
+					if (filterType === 'EQUALS') {
+						selector = `[href="${arg1Value}"]`;
+					} else if (filterType === 'CONTAINS') {
+						selector = `[href*="${arg1Value}"]`;
+					} else if (filterType === 'STARTS_WITH') {
+						selector = `[href^="${arg1Value}"]`;
+					} else if (filterType === 'ENDS_WITH') {
+						selector = `[href$="${arg1Value}"]`;
+					} else {
+						canProcessCondition = false;
+					}
+				} else {
+					canProcessCondition = false;
+				}
+
+				if (canProcessCondition && actionType && selector && context) {
+					const domain =
+						'https://' +
+						window.location.hostname.replace('www.', '') +
+						(window.location.port ? ':' + window.location.port : '');
+
+					const requestBody = {
+						actionType: actionType,
+						selector: selector,
+						context: context,
+						domain: domain,
+						sendToRocket: false,
+						script_id: script_id,
+					};
+
+					conditions.push({
+						variable: arg0Value,
+						operator: translateOperator(filterType),
+						value: selector,
+						processed: true,
+						requestBody: requestBody,
+					});
+
+					domainActions.push({
+						name: tagName,
+						triggerName: trigger.name || '',
+						triggerType: triggerType,
+						condition: {
 							variable: arg0Value,
 							operator: translateOperator(filterType),
 							value: arg1Value,
-							cannotProcess: true,
-						});
-					}
+						},
+						requestBody: requestBody,
+					});
 				} else {
 					canProcess = false;
 					conditions.push({
@@ -184,25 +239,34 @@ function processTriggers(triggers, tagName) {
 					});
 				}
 			});
+
+			triggerInfoList.push({
+				triggerId: trigger.triggerId,
+				name: trigger.name || '',
+				type: triggerType,
+				conditions: conditions,
+				canProcess: canProcess,
+			});
 		} else {
 			canProcess = false;
 			conditions.push({
 				message: `Триггер типа ${triggerType} не поддерживается`,
 				cannotProcess: true,
 			});
-		}
 
-		triggerInfoList.push({
-			triggerId: trigger.triggerId,
-			name: trigger.name || '',
-			type: triggerType,
-			conditions: conditions,
-			canProcess: canProcess,
-		});
+			triggerInfoList.push({
+				triggerId: trigger.triggerId,
+				name: trigger.name || '',
+				type: triggerType,
+				conditions: conditions,
+				canProcess: false,
+			});
+		}
 	});
 
 	return { triggerInfo: triggerInfoList, domainActions };
 }
+
 
 function translateOperator(operator) {
 	switch (operator) {
